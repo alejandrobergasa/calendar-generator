@@ -1,4 +1,5 @@
 import datetime
+import sys
 from fpdf import FPDF
 
 def to_string(l):
@@ -23,12 +24,10 @@ meses = {
 }
 
 def calendar(year, month):
-	desc = f'\n \n \n Año: {year},  Mes: {meses[month]}\n \n'
-	week_days_str = '    Lunes        Martes     Miércoles     Jueves       Viernes       Sábado      Domingo    \n'
+	desc = f'\n \n \n \n \n \n Año: {year},  Mes: {meses[month]}\n \n \n \n'
+	week_days_str = '    Lunes        Martes     Miércoles     Jueves       Viernes       Sábado      Domingo    \n \n'
 	horiz = '+------------+------------+------------+------------+------------+------------+------------+\n'
 	verti = '|            |            |            |            |            |            |            |\n'
-
-	calendar = desc + week_days_str + horiz
 
 	first_day = datetime.datetime(year, month, 1)
 	first_w_day = (int(first_day.strftime('%w')) - 1)%7
@@ -40,7 +39,7 @@ def calendar(year, month):
 
 	if month == 2:
 		if year%4 == 0:
-			tot = 28
+			tot = 29
 			if year%100 == 0:
 				tot = 28
 				if year%400 != 0:
@@ -51,8 +50,19 @@ def calendar(year, month):
 	w_d = first_w_day
 	offset = 2+12*(w_d)
 
+	horiz_first = list(horiz)
+	for i in range(0,w_d*13):
+		horiz_first[i] = ' '
+
+	calendar = desc + week_days_str + to_string(horiz_first)
+
 	while d <= tot:
 		v = list(verti)
+		h = list(horiz)
+		if w == 1:
+			for i in range(0,w_d):
+				v[13*i] = ' '
+		vv = list(to_string(v))
 		for w in range(w_d, 7):
 			if d <= tot:
 				offset = 2+13*(w)
@@ -60,9 +70,16 @@ def calendar(year, month):
 				v[offset:offset+len(dd)] = dd
 				d += 1
 		w_d = 0
+		w += 1
+		if d > tot:
+			for j in range(7):
+				if v[2+13*j] == ' ':
+					v[13*(j+1)] = ' '
+					vv[13*(j+1)] = ' '
+					h[13*(j)+1:13*(j)+14] = [' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ']
 		calendar += to_string(v)
-		calendar += 6*verti
-		calendar += horiz
+		calendar += 7*(to_string(vv))
+		calendar += to_string(h)
 
 	return calendar
 
@@ -71,7 +88,7 @@ def add_month_to_pdf(pdf, calendar):
 	calendar = calendar.split('\n')
 	for r in calendar:
 		pdf.cell(0, 0, txt=r, align='C')
-		pdf.ln(4)
+		pdf.ln(3.5)
 
 def pdf_calendar(year):
 	pdf = FPDF()
@@ -79,10 +96,15 @@ def pdf_calendar(year):
 	for m in range(1, 13):
 		add_month_to_pdf(pdf, calendar(year, m))
 	pdf.output(f'calendar_{year}.pdf', 'F')
+	print(f'Calendar generated: calendar_{year}.pdf')
 
 def main():
-	year = int(input('Year: '))
-	pdf_calendar(year)
-	print(f'Calendar generated: calendar_{year}.pdf')
+	if len(sys.argv) == 0:
+		year = int(input('Year: '))
+		pdf_calendar(year)
+	else:
+		for i in range(1, len(sys.argv)):
+			year = int(sys.argv[i])
+			pdf_calendar(year)
 
 main()
